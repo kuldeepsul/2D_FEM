@@ -46,9 +46,11 @@ public:
 	std::vector <node* > elemental_nodelist;
 	const int elementid;
 	Material* mat;
+	std::vector <int> dofmap;
 
 	element(int elementid_param) : elementid(elementid_param) {};
 	virtual Matrix get_local_stiffness_matrix() = 0;
+	virtual void generate_dof_map()= 0;
 
 };
 
@@ -68,6 +70,7 @@ public:
 	frame(int elementid_param) : element(elementid_param) , localk(n_nodes * 2, n_nodes * 2) {};
 	
 	Matrix get_local_stiffness_matrix();
+	void generate_dof_map();
 	
 };
 
@@ -78,10 +81,13 @@ public:
 	std::vector <node* > nodelist;
 	std::vector <element* > elementlist;
 	std::vector <dof* > doflist;
+	
 
 	model(int modelid_param) : modelid(modelid_param) {};
 
 	// function to create nodes inside the model
 	void create_node(int node_id , double x , double y,double theta);
 	void create_frame_element(int element_id, int node_a_id, int node_b_id, Material* mat, double A_param, double I_param);
+
+	Matrix assemble_global_stiffness_matrix();
 };

@@ -105,7 +105,41 @@ void model::create_frame_element(int element_id, int node_a_id, int node_b_id, M
 
 	}
 	new_element->get_local_stiffness_matrix();
+	new_element->generate_dof_map();
 	this->elementlist.push_back(new_element);
 
 
+}
+
+Matrix model::assemble_global_stiffness_matrix()
+{
+	size_t n = this->doflist.size();
+	Matrix gk((int(n)),(int(n)));
+	double val = 0;
+
+	for (int i{ 0 }; i < size(this->elementlist); i++)
+	{
+		Matrix temp = elementlist[i]->get_local_stiffness_matrix();
+		for (int j{ 0 }; j < size(elementlist[i]->dofmap); j++)
+		{
+			for (int k{ 0 }; k < size(elementlist[i]->dofmap); k++)
+			{
+				gk((elementlist[i]->dofmap[j]), (elementlist[i]->dofmap[k])) += temp(j, k);
+			}
+		}
+	}
+	return gk;
+}
+
+void frame::generate_dof_map()
+{
+	for (int i{ 0 }; i < size(this->elemental_nodelist); i++)
+	{
+		for (int k{ 0 }; k < size(this->elemental_nodelist[i]->nodal_doflist); k++)
+		{
+
+			this->dofmap.push_back(this->elemental_nodelist[i]->nodal_doflist[k]->internal_dof_id);
+			
+		}
+	}
 }
