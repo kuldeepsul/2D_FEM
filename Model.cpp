@@ -143,3 +143,105 @@ void frame::generate_dof_map()
 		}
 	}
 }
+
+void model::prescribe_force(int node_id_param, int dof_id_param, double val)
+{
+	for (int i{ 0 }; i < size(this->nodelist); i++)
+	{
+		if (node_id_param == this->nodelist[i]->nodeid)
+		{
+			for (int k{ 0 }; k < size(this->nodelist[i]->nodal_doflist); k++)
+			{
+				if (dof_id_param == this->nodelist[i]->nodal_doflist[k]->nodal_dof_id)
+				{
+					this->nodelist[i]->nodal_doflist[k]->force = val;
+				}
+			}
+		}
+	}
+
+}
+void model::prescribe_dof(int node_id_param, int dof_id_param, double val)
+{
+	for (int i{ 0 }; i < size(this->nodelist); i++)
+	{
+		if (node_id_param == this->nodelist[i]->nodeid)
+		{
+			for (int k{ 0 }; k < size(this->nodelist[i]->nodal_doflist); k++)
+			{
+				if (dof_id_param == this->nodelist[i]->nodal_doflist[k]->nodal_dof_id)
+				{
+					this->nodelist[i]->nodal_doflist[k]->value = val;
+					this->nodelist[i]->nodal_doflist[k]->value_known = true;
+				}
+			}
+		}
+	}
+}
+
+Matrix model::get_force_vector()
+{
+	
+	Matrix f (0,0);
+
+	for (int i{ 0 }; i < size(this->doflist); i++)
+	{
+		if (!this->doflist[i]->value_known)
+		{
+			f.data.push_back(this->doflist[i]->force);
+		}
+	}
+	f.rows = size(f.data);
+	f.cols = 1;
+	return f;
+}
+
+Matrix model::get_reduced_system(Matrix& global_k, std::stack <int> known_dofs)
+{
+	int val = global_k.cols;
+	
+	
+	for (int i{ 0 }; i < size(this->doflist); i++)
+	{
+		if (this->doflist[i]->value_known)
+		{
+			known_dofs.push(i);
+		}
+	}
+
+	std::stack <int> temp = known_dofs;
+	int iters = size(temp);
+	for (int j{ 0 }; j < iters; j++)
+	{
+		global_k.remove_row(temp.top());
+		temp.pop();
+	}
+
+	return global_k;
+}
+
+Matrix model::Solve_model(Matrix& stiffness_mat, Matrix& f)
+{
+	// PLU decompostion of stiffness matrix
+	int rows = stiffness_mat.rows;
+	int cols = stiffness_mat.cols;
+	Matrix P(rows,cols);
+	Matrix L(rows, cols);
+	Matrix U(rows, cols);
+	// create intermediate vectors
+	Matrix a(rows, 1);
+	Matrix b(rows, 1);
+	Matrix c(rows, 1);
+
+	stiffness_mat.PLUDecomposition(P,L,U);
+
+	// [P]{a} = {f}
+	a = stiffness_mat.Solve_linear_system(P, f, true);
+	// [L]{b} = {a}
+	b = stiffness_mat.Solve_linear_system(L, a, true);
+	// [U]{c} = {b}
+	c = stiffness_mat.Solve_linear_system(U, b , false);
+
+	return c;
+}
+

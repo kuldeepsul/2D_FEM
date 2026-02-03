@@ -20,10 +20,12 @@ public:
 
 	Matrix operator+(Matrix& other) ;
 	Matrix operator*(Matrix& other);
+	void remove_row(int row_no);
 
 	Matrix Transpose();
 	void print_matrix()const;
 	void PLUDecomposition (Matrix& P , Matrix& L , Matrix& U);
+	Matrix Solve_linear_system(Matrix& stiffness_reduced, Matrix& force,bool up);
 
 
 };

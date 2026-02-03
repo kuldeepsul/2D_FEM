@@ -1,16 +1,17 @@
 #pragma once
 #include <iostream>
 #include <vector>
+#include <stack>
 #include "Material.h"
 #include "Matrix.h"
 
 class dof
 {
 public:
-	bool value_known;
+	bool value_known{false};
 	bool is_active{false};
-	double value;
-	double force;
+	double value{0};
+	double force{0};
 	int nodal_dof_id{ 0 };
 	const int internal_dof_id;
 
@@ -90,4 +91,13 @@ public:
 	void create_frame_element(int element_id, int node_a_id, int node_b_id, Material* mat, double A_param, double I_param);
 
 	Matrix assemble_global_stiffness_matrix();
+	void prescribe_force(int node_id_param , int dof_id_param , double val);
+	void prescribe_dof(int node_id_param, int dof_id_param, double val);
+
+	Matrix get_force_vector();
+	//Matrix get_disp_vector();
+	Matrix get_reduced_system(Matrix& global_k, std::stack <int> known_dofs);
+	Matrix Solve_model(Matrix& stiffness_mat , Matrix& f);
+	Matrix generate_full_solution(Matrix& c);
+	Matrix generate_rection_forces(Matrix& f);
 };

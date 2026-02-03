@@ -66,17 +66,13 @@ Matrix Matrix::operator*(Matrix& other)
 
 void Matrix::print_matrix() const 
 {
-	int count{ 0 };
-	std::cout << std::right;
-	for (int i{ 0 }; i < size(this->data); i++)
+	for (int i{ 0 }; i < this->rows; i++)
 	{
-		std::cout << std::setw(8)<< std::setprecision(2) << this->data[i];
-		count++;
-		if (count == this->cols)
+		for (int j{ 0 }; j < this->cols; j++)
 		{
-			std::cout << std::endl;
-			count = 0;
+			std::cout << std::setprecision(6) << std::setw(10) << this->data[i*cols + j];
 		}
+		std::cout << std::endl;
 	}
 };
 
@@ -166,3 +162,93 @@ void Matrix::PLUDecomposition (Matrix& P, Matrix& L, Matrix& U)
 		}
 	}
 }
+
+void Matrix::remove_row(int row_no)
+{
+	for (int i{ (this->rows)-1  }; i >= 0; i--)
+	{
+		for (int j{ (this->cols) -1 }; j >= 0; j--)
+		{
+			if (j == row_no || i == row_no)
+			{
+				this->data.erase(this->data.begin() + (i*cols + j));
+			}
+		}
+	}
+	this->rows = (this->rows) - 1;
+	this->cols = (this->cols) - 1;
+}
+
+Matrix Matrix::Solve_linear_system(Matrix& K, Matrix& f,bool up)
+{
+	double sum{ 0 };
+	double val{ 0 };
+	double res{ 0 };
+	Matrix x(f.rows,1);
+	
+	if (up)
+	{
+		for (int i{ 0 }; i < K.rows; i++)
+		{
+			for (int j{ 0 }; j < K.cols; j++)
+			{
+				if (j == i)
+				{
+					val = K(i, j);
+				}
+				else
+				{
+					sum = sum + ((K(i, j) )* (x(j, 0)));
+				}
+			}
+			res = (f(i,0) - sum) / val;
+			if (std::abs(res) < 1e-12)
+			{
+				x(i, 0) = 0;
+	
+			}
+			else
+			{
+				x(i, 0) = res;
+				
+			}
+			sum = 0;
+			val = 0;
+			
+		}
+		return x;
+	}
+	else
+	{
+		for (int i{K.rows - 1}; i >= 0; i--)
+		{
+			for (int j{ K.rows - 1}; j >= 0; j--)
+			{
+				if (j == i)
+				{
+					val = K(i, j);
+				}
+				else
+				{
+					sum = sum + ((K(i, j)) * (x(j, 0)));
+				}
+			}
+			res = (f(i, 0) - sum) / val;
+			if (std::abs(res) < 1e-12)
+			{
+				x(i, 0) = 0;
+				
+			}
+			else
+			{
+				x(i, 0) = res;
+				
+			}
+			sum = 0;
+			val = 0;
+			
+		}
+		return x;
+	}
+}
+
