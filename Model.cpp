@@ -1,6 +1,7 @@
 #pragma once
 #include "Model.h"
 #include <cmath>
+#include <fstream>
 
 Matrix frame::get_local_stiffness_matrix()
 {
@@ -51,25 +52,26 @@ void model::create_node(int node_id, double x, double y, double theta)
 	this->doflist.push_back(p_dof_03);
 
 	// pushing dof into nodal dof list
-	p_dof_01->nodal_dof_id = size(n->nodal_doflist);
+	p_dof_01->nodal_dof_id = 1;
 	n->nodal_doflist.push_back(p_dof_01);
-	p_dof_02->nodal_dof_id = size(n->nodal_doflist);
+	p_dof_02->nodal_dof_id = 2;
 	n->nodal_doflist.push_back(p_dof_02);
-	p_dof_03->nodal_dof_id = size(n->nodal_doflist);
+	p_dof_03->nodal_dof_id = 3;
 	n->nodal_doflist.push_back(p_dof_03);
 
 	
 }
 
-void model::create_frame_element(int element_id, int node_a_id, int node_b_id, Material* mat_param, double A_param, double I_param)
+
+void model::create_frame_element(int element_id, int node_a_id, int node_b_id,int mat_id_param, double A_param, double I_param)
 {
 	frame* new_element = new frame(element_id);
-	new_element->mat = mat_param;
 	new_element->A = A_param;
 	new_element->I = I_param;
 
 	bool node_a_found{false};
 	bool node_b_found{false};
+	bool material_found{false};
 
 	int initial_node_count = size(this->nodelist);
 
@@ -104,11 +106,37 @@ void model::create_frame_element(int element_id, int node_a_id, int node_b_id, M
 		}
 
 	}
+	////////////////////////////////////////////////////////////////
+	// Assigning Material
+	for (int i{ 0 }; i < size(this->material_list); i++)
+	{
+		if (this->material_list[i]->M_id == mat_id_param)
+		{
+			new_element->mat = material_list[i];
+			material_found = true;
+		}
+		else
+		{
+			continue;
+		}
+		
+	}
+	if (!material_found)
+	{
+		std::cout << "Error : Material Id not found : " << element_id << std::endl;
+	}
+	//////////////////////////////////////////////////////////////////
 	new_element->get_local_stiffness_matrix();
 	new_element->generate_dof_map();
 	this->elementlist.push_back(new_element);
 
 
+}
+
+void model::create_material(int mat_id_param, double E_param, double Nu_param)
+{
+	Material* mat = new Material(mat_id_param,E_param,Nu_param);
+	this->material_list.push_back(mat);
 }
 
 Matrix model::assemble_global_stiffness_matrix()
@@ -196,7 +224,7 @@ Matrix model::get_force_vector()
 	return f;
 }
 
-Matrix model::get_reduced_system(Matrix& global_k, std::stack <int> known_dofs)
+Matrix model::get_reduced_system(Matrix global_k, std::vector <int> &known_dofs)
 {
 	int val = global_k.cols;
 	
@@ -205,26 +233,61 @@ Matrix model::get_reduced_system(Matrix& global_k, std::stack <int> known_dofs)
 	{
 		if (this->doflist[i]->value_known)
 		{
-			known_dofs.push(i);
+			known_dofs.push_back(i);
 		}
 	}
 
-	std::stack <int> temp = known_dofs;
+	std::vector <int> temp = known_dofs;
 	int iters = size(temp);
 	for (int j{ 0 }; j < iters; j++)
 	{
-		global_k.remove_row(temp.top());
-		temp.pop();
+		global_k.remove_row(temp.back());
+		temp.pop_back();
 	}
 
 	return global_k;
 }
 
+Matrix model::generate_full_solution(Matrix& c, std::vector <int> known_dofs)
+{
+	
+	int iter = size(this->doflist);
+	Matrix x(iter , 1);
+
+	std::vector <int> temp = known_dofs;
+	for (int i{ 0 }; i < iter; i++)
+	{
+		if (size(temp) != 0)
+		{
+			if (i == temp.front())
+			{
+				x(i, 0) = 0;
+				temp.erase(temp.begin());
+				continue;
+			}
+			
+		}
+
+		x(i, 0) = c.data.front();
+		c.data.erase(c.data.begin());
+		
+	}
+	return x;
+};
+//Matrix generate_rection_forces(Matrix& f);
+
 Matrix model::Solve_model(Matrix& stiffness_mat, Matrix& f)
 {
+	// Generating reduced stiffness matrix
+	std::vector <int> known_dofs;
+	Matrix reduced_stiffness_mat = this->get_reduced_system(stiffness_mat,known_dofs);
+
+	std::cout << "Reduced System--------------------------------------------------" << std::endl;
+	reduced_stiffness_mat.print_matrix();
+
 	// PLU decompostion of stiffness matrix
-	int rows = stiffness_mat.rows;
-	int cols = stiffness_mat.cols;
+	int rows = reduced_stiffness_mat.rows;
+	int cols = reduced_stiffness_mat.cols;
 	Matrix P(rows,cols);
 	Matrix L(rows, cols);
 	Matrix U(rows, cols);
@@ -233,15 +296,33 @@ Matrix model::Solve_model(Matrix& stiffness_mat, Matrix& f)
 	Matrix b(rows, 1);
 	Matrix c(rows, 1);
 
-	stiffness_mat.PLUDecomposition(P,L,U);
+	reduced_stiffness_mat.PLUDecomposition(P,L,U);
 
 	// [P]{a} = {f}
-	a = stiffness_mat.Solve_linear_system(P, f, true);
+	a = reduced_stiffness_mat.Solve_linear_system(P, f, true);
 	// [L]{b} = {a}
-	b = stiffness_mat.Solve_linear_system(L, a, true);
+	b = reduced_stiffness_mat.Solve_linear_system(L, a, true);
 	// [U]{c} = {b}
-	c = stiffness_mat.Solve_linear_system(U, b , false);
+	c = reduced_stiffness_mat.Solve_linear_system(U, b , false);
 
-	return c;
+	Matrix x = this->generate_full_solution(c,known_dofs);
+	return x;
+}
+
+void model::export_results(Matrix& sol, std::string outfile_name)
+{
+	std::fstream res_file;
+	res_file.open(outfile_name,std::ios::out | std::ios::app);
+	int count{ 0 };
+	
+	for (int i{ 0 }; i < size(this->nodelist); i++)
+	{
+		for (int k{ 0 }; k < size(this->nodelist[i]->nodal_doflist); k++)
+		{
+			res_file << this->nodelist[i]->nodeid << "," << this->nodelist[i]->nodal_doflist[k]->nodal_dof_id << "," << sol(count, 0) << std::endl;
+			count++;
+		}
+		
+	}
 }
 

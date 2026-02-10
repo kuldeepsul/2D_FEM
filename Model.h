@@ -82,13 +82,15 @@ public:
 	std::vector <node* > nodelist;
 	std::vector <element* > elementlist;
 	std::vector <dof* > doflist;
+	std::vector <Material*> material_list;
 	
 
 	model(int modelid_param) : modelid(modelid_param) {};
 
 	// function to create nodes inside the model
 	void create_node(int node_id , double x , double y,double theta);
-	void create_frame_element(int element_id, int node_a_id, int node_b_id, Material* mat, double A_param, double I_param);
+	void create_frame_element(int element_id, int node_a_id, int node_b_id, int mat_id_param, double A_param, double I_param);
+	void create_material(int mat_id_param, double E_param, double Nu_param);
 
 	Matrix assemble_global_stiffness_matrix();
 	void prescribe_force(int node_id_param , int dof_id_param , double val);
@@ -96,8 +98,10 @@ public:
 
 	Matrix get_force_vector();
 	//Matrix get_disp_vector();
-	Matrix get_reduced_system(Matrix& global_k, std::stack <int> known_dofs);
+	Matrix get_reduced_system(Matrix global_k, std::vector <int> &known_dofs);
 	Matrix Solve_model(Matrix& stiffness_mat , Matrix& f);
-	Matrix generate_full_solution(Matrix& c);
-	Matrix generate_rection_forces(Matrix& f);
+	Matrix generate_full_solution(Matrix& c, std::vector <int> known_dofs);
+	//Matrix generate_rection_forces(Matrix& f);
+
+	void export_results(Matrix& sol, std::string outfile_name);
 };
