@@ -31,7 +31,7 @@ $$
 ##### Model Global Co-ordinates
 - The global is based on the global co-ordinate system of the whole model, therefore the stiffness of element assembled in the global stiffness matrix must be in global directions.
 
-![[Pasted image 20260210150429.png]]
+![Coordinate_Transform](images/Pasted%20image%2020260210150429.png)
 
 ##### Transformation Matrix
 
@@ -188,7 +188,7 @@ Ex. Input for a two element cantilever beam.
 ```
 
 ##### Result Plots
-![[Pasted image 20260211131022.png]]
+![PureTendsion](images/Pasted%20image%2020260211131022.png)
 
 #### Test case 2: Pure Bending.
 
@@ -215,9 +215,9 @@ $\theta_{max}$ =  ${P.L^2} /{2.E.I}$ = -0.001$rad$
 ```
 
 ##### Result plots
-![[Pasted image 20260211131240.png]]
+![PureBending](images/Pasted%20image%2020260211131240.png)
 Scaled - 100 times
-![[Pasted image 20260211131353.png]]
+![PureBendingscaled](images/Pasted%20image%2020260211131353.png)
 
 #### Test case 3: Tension on Frame at an Angle.
 
@@ -244,7 +244,7 @@ Analytical result -
 ```
 
 ##### Result Plot
-![[Pasted image 20260211144409.png]]
+![IclinedElement](images/Pasted%20image%2020260211144409.png)
 
 ### 9. Software Architecture
 
