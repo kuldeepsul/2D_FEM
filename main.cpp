@@ -8,7 +8,7 @@
 #include "Input_Reader.h"
 
 int main()
-{	
+{	/*
 	model* p_model = new model(1);
 	
 	////////////////////////////////////////////////////////////////////////////////////
@@ -51,5 +51,18 @@ int main()
 	std::cout << "Results Exported sucessfully ---------------------------------------" << std::endl;
 	////////////////////////////////////////////////////////////////////////////////
 
+	*/
 
+	Matrix sample{ 2,2 };
+	sample.data = {2,5,12,5};
+
+	sample.print_matrix();
+	std::cout << "---------------------------------" << std::endl;
+
+	Matrix invert = sample.Invert_Jacobain(sample);
+	invert.print_matrix();
+	std::cout << "---------------------------------" << std::endl;
+
+	Matrix identity = invert * sample;
+	identity.print_matrix();
 }

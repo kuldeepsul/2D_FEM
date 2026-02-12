@@ -6,6 +6,7 @@ Input_Reader::Input_Reader()
 	current_data = data_type::Node;
 	data_handler[data_type::Node] = [this](model* m,std::string &line) { read_Node_data(m,line); };
 	data_handler[data_type::Frame] = [this](model* m, std::string& line) { read_Frame_data(m,line); };
+	//data_handler[data_type::Quad] = [this](model* m, std::string& line) { read_Quad_data(m, line); };
 	data_handler[data_type::BC] = [this](model* m, std::string& line) { read_BC_data(m,line); };
 	data_handler[data_type::Force] = [this](model* m, std::string& line) { read_Force_data(m,line); };
 	data_handler[data_type::Material] = [this](model* m, std::string& line) { read_Material_data(m, line); };

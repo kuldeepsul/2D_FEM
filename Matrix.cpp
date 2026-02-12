@@ -64,13 +64,27 @@ Matrix Matrix::operator*(Matrix& other)
 	return C;
 }
 
-void Matrix::print_matrix() const 
+Matrix Matrix::scaler_multiple(double scaler)
 {
 	for (int i{ 0 }; i < this->rows; i++)
 	{
 		for (int j{ 0 }; j < this->cols; j++)
 		{
-			std::cout << std::setprecision(6) << std::setw(10) << this->data[i*cols + j];
+			(*this)(i, j) = scaler * (*this)(i, j);
+		}
+	}
+
+	return (*this);
+}
+
+void Matrix::print_matrix() const 
+{
+	std::cout << std::right;
+	for (int i{ 0 }; i < this->rows; i++)
+	{
+		for (int j{ 0 }; j < this->cols; j++)
+		{
+			std::cout << std::setprecision(4) << std::setw(12) << this->data[i*cols + j];
 		}
 		std::cout << std::endl;
 	}
@@ -252,3 +266,23 @@ Matrix Matrix::Solve_linear_system(Matrix& K, Matrix& f,bool up)
 	}
 }
 
+Matrix Matrix::Invert_Jacobain(Matrix& Jacobian)
+{
+	if (Jacobian.rows != 2 || Jacobian.cols != 2)
+	{
+		std::cout << "Error : Jacobian is not a 2 x 2 matrix " << std::endl;
+	}
+
+	double det_j = (Jacobian(0, 0) * Jacobian(1, 1)) - (Jacobian(0, 1) * Jacobian(1, 0));
+
+	if (det_j == 0)
+	{
+		std::cout << "Jacobian is not invertable." << std::endl;
+	}
+
+	Matrix adj_Jacobian{ 2,2 };
+	adj_Jacobian.data = { Jacobian(1, 1) ,-Jacobian(0, 1) ,-Jacobian(1, 0), Jacobian(0, 0) };
+
+	return adj_Jacobian.scaler_multiple(1/det_j);
+
+}

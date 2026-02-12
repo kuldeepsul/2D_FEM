@@ -18,12 +18,13 @@ Matrix frame::get_local_stiffness_matrix()
 	Matrix T(this->localk.rows , this->localk.cols);
 	Matrix elementk(this->localk.rows, this->localk.cols);
 
-	T.data = { c , -s , 0 , 0 , 0 , 0 ,
-			   s ,  c , 0 , 0 , 0 , 0 ,
+	T.data = { c ,  s , 0 , 0 , 0 , 0 ,
+			  -s ,  c , 0 , 0 , 0 , 0 ,
 			   0 ,  0 , 1 , 0 , 0 , 0 ,
-			   0 ,  0 , 0 , c ,-s , 0 ,
-			   0 ,  0 , 0 , s , c , 0 ,
+			   0 ,  0 , 0 , c , s , 0 ,
+			   0 ,  0 , 0 ,-s , c , 0 ,
 			   0 ,  0 , 0 , 0 , 0 , 1 };
+
 
 	elementk.data = { ka ,  0          , 0				, -ka, 0		   , 0				,
 					   0 ,  12 * kb    , 6 * l * kb     , 0  , -12 * kb    , 6 * l * kb     ,
@@ -31,8 +32,11 @@ Matrix frame::get_local_stiffness_matrix()
 					 -ka ,  0          , 0              , ka , 0		   , 0				,
 					   0 ,  -12 * kb   , -6 * l * kb 	, 0  , 12 * kb     , -6 * l * kb    ,
 					   0 , 6 * l * kb  , 2 * l * l * kb , 0  ,-6 * l * kb  , 4 * l * l * kb };
-	this->localk = T * elementk;
+
+	this->localk = elementk * T;
+
 	this->localk = T.Transpose() * localk;
+
 	return localk;
 };
 
@@ -132,6 +136,80 @@ void model::create_frame_element(int element_id, int node_a_id, int node_b_id,in
 
 
 }
+
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////			Q4 Functions						//////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
+
+Matrix Quad::get_shape_func_der(double xi, double eta)
+{
+	Matrix sf_der{2,4};
+
+	sf_der.data = { -(1 - eta) / 4.0	,(1 - eta) / 4.0	,(1 + eta) / 4.0	,-(1 + eta) / 4.0,
+					-(1 - xi) / 4.0 	,-(1 + xi) / 4.0	,(1 + xi) / 4.0		,(1 - xi) / 4.0 };
+
+	return sf_der;
+}
+
+Matrix Quad::get_jacobian_matrix(double xi, double eta)
+{
+	Matrix sf_der = this->get_shape_func_der(xi, eta);
+
+	return sf_der * this->corners;
+}
+
+Matrix Quad::get_B_matrix(Matrix& sf_der, Matrix& jacobian)
+{
+	Matrix I_jacobian = jacobian.Invert_Jacobain(jacobian);
+
+	Matrix N1_der_n{ 2,1 };
+	Matrix N2_der_n{ 2,1 };
+	Matrix N3_der_n{ 2,1 };
+	Matrix N4_der_n{ 2,1 };
+
+	N1_der_n.data = { sf_der(0,0) , sf_der(1,0) };
+	N2_der_n.data = { sf_der(0,1) , sf_der(1,1) };
+	N3_der_n.data = { sf_der(0,2) , sf_der(1,2) };
+	N4_der_n.data = { sf_der(0,3) , sf_der(1,3) };
+
+	Matrix N1_der_g = I_jacobian * N1_der_n;
+	Matrix N2_der_g = I_jacobian * N2_der_n;
+	Matrix N3_der_g = I_jacobian * N3_der_n;
+	Matrix N4_der_g = I_jacobian * N4_der_n;
+
+	Matrix B{ 3,8 };
+	B.data = { N1_der_g(0,0) ,		0		,N2_der_g(0,0)	,		0		,N3_der_g(0,0) ,		0	  ,N4_der_g(0,0) ,		0
+			 ,     0	     ,N1_der_g(1,0) ,		0		,N2_der_g(1,0)	,		0	   ,N3_der_g(0,0) ,		0		 ,N4_der_g(0,0)
+			 ,N1_der_g(1,0)  ,N1_der_g(0,0) ,N2_der_g(1,0)  ,N2_der_g(0,0)  ,N3_der_g(1,0) ,N3_der_g(0,0) ,N4_der_g(1,0) ,N4_der_g(0,0)};
+
+
+}
+
+Matrix Quad::get_local_stiffness_matrix()
+{
+	Matrix Ke{ 8,8 };
+	std::vector <std::vector <double>> samples;
+	samples = { {-0.57735,-0.57735},{0.57735,-0.57735},{0.57735,0.57735},{-0.57735,0.57735} };
+
+	for (int i{ 0 }; i < size(samples); i++)
+	{
+		Matrix sf_der = this->get_shape_func_der(samples[i][0], samples[i][1]);
+		Matrix J = this->get_jacobian_matrix(samples[i][0], samples[i][1]);
+		Matrix B = this->get_B_matrix(sf_der, J);
+
+		Matrix sample_matrix = this->mat->D_stress * B;
+		Matrix sample_matrix = B.Transpose() * localk;
+
+		Ke = Ke + sample_matrix;
+
+
+	}
+}
+
+
+
+
 
 void model::create_material(int mat_id_param, double E_param, double Nu_param)
 {

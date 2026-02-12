@@ -75,6 +75,22 @@ public:
 	
 };
 
+class Quad : public element
+{
+	const int n_nodes{2};
+public:
+	double thickness{ 1 };
+	Matrix localk;
+	Matrix corners{ 4,2 };
+	
+
+	Matrix get_local_stiffness_matrix();
+	void generate_dof_map();
+	Matrix get_shape_func_der(double xi ,double eta);
+	Matrix get_jacobian_matrix(double xi,double eta);
+	Matrix get_B_matrix(Matrix& sf_der , Matrix& jacobian);
+};
+
 class model
 {
 	const int modelid;

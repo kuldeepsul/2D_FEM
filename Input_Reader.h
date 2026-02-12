@@ -7,7 +7,7 @@
 #include "Model.h"
 
 // Data type
-enum class data_type {Node,Frame,BC,Force,Material};
+enum class data_type {Node,Frame,Quad,BC,Force,Material};
 
 
 class Input_Reader
@@ -23,6 +23,7 @@ public:
 
 	void read_Node_data(model* p_model,std::string &line);
 	void read_Frame_data(model* p_model, std::string& line);
+	void read_Quad_data(model* p_model, std::string& line);
 	void read_BC_data(model* p_model, std::string& line);
 	void read_Force_data(model* p_model, std::string& line);
 	void read_Material_data(model* p_model, std::string& line);
