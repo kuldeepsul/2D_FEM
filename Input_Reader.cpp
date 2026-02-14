@@ -6,7 +6,7 @@ Input_Reader::Input_Reader()
 	current_data = data_type::Node;
 	data_handler[data_type::Node] = [this](model* m,std::string &line) { read_Node_data(m,line); };
 	data_handler[data_type::Frame] = [this](model* m, std::string& line) { read_Frame_data(m,line); };
-	//data_handler[data_type::Quad] = [this](model* m, std::string& line) { read_Quad_data(m, line); };
+	data_handler[data_type::Quad] = [this](model* m, std::string& line) { read_Quad_data(m, line); };
 	data_handler[data_type::BC] = [this](model* m, std::string& line) { read_BC_data(m,line); };
 	data_handler[data_type::Force] = [this](model* m, std::string& line) { read_Force_data(m,line); };
 	data_handler[data_type::Material] = [this](model* m, std::string& line) { read_Material_data(m, line); };
@@ -59,6 +59,33 @@ void Input_Reader::read_Frame_data(model* p_model, std::string& line)
 	// Creating Instance
 	p_model->create_frame_element(element_id,n1,n2,mat_id,A,I);
 }
+
+void Input_Reader::read_Quad_data(model* p_model, std::string& line)
+{
+	std::string value;
+	std::stringstream s(line);
+
+	double element_id, n1, n2, n3, n4, mat_id;
+	std::getline(s, value, ',');
+	element_id = std::stoi(value);
+	std::getline(s, value, ',');
+	n1 = std::stoi(value);
+	std::getline(s, value, ',');
+	n2 = std::stoi(value);
+	std::getline(s, value, ',');
+	n3 = std::stod(value);
+	std::getline(s, value, ',');
+	n4 = std::stod(value);
+	std::getline(s, value, ',');
+	mat_id = std::stoi(value);
+
+	// For debugging
+	std::cout << "Element_ID: " << element_id << " N1:" << n1 << " N2:" << n2 << " A:" << n3 << " I:" << n4 << " Materail_ID:" << mat_id << std::endl;
+
+	// Creating Instance
+	p_model->create_Quad_element(element_id, n1, n2, n3, n4, mat_id);
+}
+
 void Input_Reader::read_BC_data(model* p_model, std::string& line)
 {
 	

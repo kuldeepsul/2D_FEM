@@ -88,6 +88,11 @@ void model::create_frame_element(int element_id, int node_a_id, int node_b_id,in
 				new_element->elemental_nodelist.push_back(nodelist[i]);
 				new_element->node_a = nodelist[i];
 				node_a_found = true;
+				
+				for (int k{ 0 }; k < size(new_element->node_a->nodal_doflist); k++)
+				{
+					new_element->node_a->nodal_doflist[k]->is_active = true;
+				}
 			}
 			else if (i + 1 == size(this->nodelist) && (!node_a_found))
 			{
@@ -102,6 +107,11 @@ void model::create_frame_element(int element_id, int node_a_id, int node_b_id,in
 				new_element->elemental_nodelist.push_back(nodelist[i]);
 				new_element->node_b = nodelist[i];
 				node_b_found = true;
+
+				for (int k{ 0 }; k < size(new_element->node_b->nodal_doflist); k++)
+				{
+					new_element->node_b->nodal_doflist[k]->is_active = true;
+				}
 			}
 			else if (i + 1 == size(this->nodelist) && (!node_b_found))
 			{
@@ -137,10 +147,216 @@ void model::create_frame_element(int element_id, int node_a_id, int node_b_id,in
 
 }
 
+void model::create_Quad_element(int element_id, int n1, int n2, int n3, int n4, int mat_id)
+{
+	Quad* new_element = new Quad(element_id);
 
+	// Utils
+	bool n1_found{ false };
+	bool n2_found{ false };
+	bool n3_found{ false };
+	bool n4_found{ false };
+	bool mat_found{ false };
+
+	for (node* n : this->nodelist)
+	{
+		if (!n1_found)
+		{
+			if (n->nodeid == n1)
+			{
+				n1_found = true;
+				n->nodal_doflist[0]->is_active = true;
+				n->nodal_doflist[1]->is_active = true;
+				new_element->elemental_nodelist.push_back(n);
+			}
+			else if (n == this->nodelist.back() && !n1_found)
+			{
+				std::cout << "Error : Node ->" << n1 << " not found" << std::endl;
+			}
+		}
+		if (!n2_found)
+		{
+			if (n->nodeid == n2)
+			{
+				n2_found = true;
+				n->nodal_doflist[0]->is_active = true;
+				n->nodal_doflist[1]->is_active = true;
+				new_element->elemental_nodelist.push_back(n);
+			}
+			else if (n == this->nodelist.back() && !n2_found)
+			{
+				std::cout << "Error : Node ->" << n2 << " not found" << std::endl;
+			}
+		}
+		if (!n3_found)
+		{
+			if (n->nodeid == n3)
+			{
+				n3_found = true;
+				n->nodal_doflist[0]->is_active = true;
+				n->nodal_doflist[1]->is_active = true;
+				new_element->elemental_nodelist.push_back(n);
+			}
+			else if (n == this->nodelist.back() && !n3_found)
+			{
+				std::cout << "Error : Node ->" << n3 << " not found" << std::endl;
+			}
+		}
+		if (!n4_found)
+		{
+			if (n->nodeid == n3)
+			{
+				n4_found = true;
+				n->nodal_doflist[0]->is_active = true;
+				n->nodal_doflist[1]->is_active = true;
+				new_element->elemental_nodelist.push_back(n);
+			}
+			else if (n == this->nodelist.back() && !n4_found)
+			{
+				std::cout << "Error : Node ->" << n4 << " not found" << std::endl;
+			}
+		}
+	}
+
+	////////////////////////////////////////////////////////////////
+    // Assigning Material
+	for (int i{ 0 }; i < size(this->material_list); i++)
+	{
+		if (this->material_list[i]->M_id == mat_id)
+		{
+			new_element->mat = this->material_list[i];
+			mat_found = true;
+		}
+		else
+		{
+			continue;
+		}
+
+	}
+	if (!mat_found)
+	{
+		std::cout << "Error : Material Id not found : " << element_id << std::endl;
+	}
+	//////////////////////////////////////////////////////////////////
+
+	new_element->generate_corner_matrix();
+
+	if (new_element->is_valid_element())
+	{
+		new_element->generate_dof_map();
+		new_element->get_local_stiffness_matrix();
+		this->elementlist.push_back(new_element);
+		return;
+	}
+	else
+	{
+		new_element->update_orientation();
+		if (new_element->is_valid_element())
+		{
+			new_element->generate_dof_map();
+			new_element->get_local_stiffness_matrix();
+			this->elementlist.push_back(new_element);
+			return;
+		}
+		else
+		{
+			throw std::runtime_error("Fatal Error: Invalid Element");
+		}
+	}
+
+}
 //////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////			Q4 Functions						//////////////////////////////
 //////////////////////////////////////////////////////////////////////////////////////////////////
+
+bool Quad::is_valid_element()
+{
+	bool has_neg{ false };
+	bool has_pos{ false };
+	bool invalid_element{false};
+
+	std::vector <std::vector <double>> samples;
+	std::vector <double> det_j_samples;
+	samples = { {-0.57735,-0.57735},{0.57735,-0.57735},{0.57735,0.57735},{-0.57735,0.57735} };
+	
+	for (int i{ 0 }; i < size(samples); i++)
+	{
+		det_j_samples.push_back(this->get_det_j(samples[i][0], samples[i][1]));
+	}
+
+	const double tol = 1e-12;
+	for (double d : det_j_samples)
+	{
+		if (d > tol )
+		{
+			has_pos = true;
+		}
+		else if (d < -tol )
+		{
+			has_neg = true;
+		}
+		else
+		{
+			invalid_element = true;
+			break;
+		}
+	}
+	if (!invalid_element)
+	{
+
+		if (has_pos && !has_neg)
+		{
+			return true;
+		}
+		else if (has_neg && !has_pos)
+		{
+			return false;
+		}
+		else if (has_neg && has_pos)
+		{
+			std::cout << "Error : Distorted element : Element ID : " << this->elementid << std::endl;
+			throw std::runtime_error("FATAL ERROR : Invalid element");
+		}
+	}
+	else
+	{
+		std::cout << "Error : Distorted element : Element ID : " << this->elementid << std::endl;
+		throw std::runtime_error("FATAL ERROR : Invalid element");
+	}
+}
+
+void Quad::update_orientation()
+{
+	node* temp = this->elemental_nodelist[1];
+	this->elemental_nodelist[1] = this->elemental_nodelist[3];
+	this->elemental_nodelist[3] = temp;
+
+	this->generate_corner_matrix();
+}
+
+void Quad::generate_corner_matrix()
+{
+	std::vector <double> corner_data;
+	for (node* n : this->elemental_nodelist)
+	{
+		corner_data.push_back(n->pos_x);
+		corner_data.push_back(n->pos_y);
+	}
+	
+	this->corners.data = corner_data;
+}
+
+void Quad::generate_dof_map()
+{
+	std::vector <int> map;
+	for (node* n : this->elemental_nodelist)
+	{
+		map.push_back(n->nodal_doflist[0]->internal_dof_id);
+		map.push_back(n->nodal_doflist[1]->internal_dof_id);
+	}
+
+	this->dofmap = map;
+}
 
 Matrix Quad::get_shape_func_der(double xi, double eta)
 {
@@ -183,7 +399,15 @@ Matrix Quad::get_B_matrix(Matrix& sf_der, Matrix& jacobian)
 			 ,     0	     ,N1_der_g(1,0) ,		0		,N2_der_g(1,0)	,		0	   ,N3_der_g(0,0) ,		0		 ,N4_der_g(0,0)
 			 ,N1_der_g(1,0)  ,N1_der_g(0,0) ,N2_der_g(1,0)  ,N2_der_g(0,0)  ,N3_der_g(1,0) ,N3_der_g(0,0) ,N4_der_g(1,0) ,N4_der_g(0,0)};
 
+	return B;
+}
 
+double Quad::get_det_j(double xi, double eta)
+{
+	Matrix J = this->get_jacobian_matrix(xi,eta);
+
+	double det_j = (J(0, 0) * J(1, 1)) - (J(0, 1) * J(1, 0));
+	return det_j;
 }
 
 Matrix Quad::get_local_stiffness_matrix()
@@ -197,14 +421,19 @@ Matrix Quad::get_local_stiffness_matrix()
 		Matrix sf_der = this->get_shape_func_der(samples[i][0], samples[i][1]);
 		Matrix J = this->get_jacobian_matrix(samples[i][0], samples[i][1]);
 		Matrix B = this->get_B_matrix(sf_der, J);
+		double det_j = this->get_det_j(samples[i][0], samples[i][1]);
 
 		Matrix sample_matrix = this->mat->D_stress * B;
-		Matrix sample_matrix = B.Transpose() * localk;
+		sample_matrix = B.Transpose() * sample_matrix;
+		sample_matrix = sample_matrix.scaler_multiple(det_j);
 
 		Ke = Ke + sample_matrix;
 
 
 	}
+
+	this->localk = Ke;
+	return Ke;
 }
 
 
@@ -219,8 +448,21 @@ void model::create_material(int mat_id_param, double E_param, double Nu_param)
 
 Matrix model::assemble_global_stiffness_matrix()
 {
-	size_t n = this->doflist.size();
-	Matrix gk((int(n)),(int(n)));
+	// calculate no of active dofs
+	int n{ 0 };
+	for (dof* di : this->doflist)
+	{
+		if (di->is_active)
+		{
+			n++;
+		}
+		else
+		{
+			continue;
+		}
+	}
+
+	Matrix gk(n,n);
 	double val = 0;
 
 	for (int i{ 0 }; i < size(this->elementlist); i++)

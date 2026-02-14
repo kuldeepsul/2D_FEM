@@ -20,7 +20,7 @@ public:
 		// default values 
 		this->force = 0;
 		this->value = 0;
-		this->is_active = true;
+		this->is_active = false;
 		this->value_known = false;
 	};
 };
@@ -58,7 +58,7 @@ public:
 class frame : public element
 {
 private:
-	const int n_nodes{ 3 };
+	const int dof_per_node{ 3 };
 public:
 	// Data
 	double A{0};
@@ -68,7 +68,7 @@ public:
 	node* node_b;
 
 
-	frame(int elementid_param) : element(elementid_param) , localk(n_nodes * 2, n_nodes * 2) {};
+	frame(int elementid_param) : element(elementid_param) , localk(dof_per_node * 2, dof_per_node * 2) {};
 	
 	Matrix get_local_stiffness_matrix();
 	void generate_dof_map();
@@ -77,18 +77,23 @@ public:
 
 class Quad : public element
 {
-	const int n_nodes{2};
+	const int dof_per_node{2};
 public:
 	double thickness{ 1 };
 	Matrix localk;
 	Matrix corners{ 4,2 };
 	
+	Quad(int e_id) :element(e_id), localk(dof_per_node * 4, dof_per_node * 4) {};
 
 	Matrix get_local_stiffness_matrix();
+	bool is_valid_element();
+	void update_orientation();
 	void generate_dof_map();
+	void generate_corner_matrix();
 	Matrix get_shape_func_der(double xi ,double eta);
 	Matrix get_jacobian_matrix(double xi,double eta);
 	Matrix get_B_matrix(Matrix& sf_der , Matrix& jacobian);
+	double get_det_j(double xi, double eta);
 };
 
 class model
@@ -106,6 +111,7 @@ public:
 	// function to create nodes inside the model
 	void create_node(int node_id , double x , double y,double theta);
 	void create_frame_element(int element_id, int node_a_id, int node_b_id, int mat_id_param, double A_param, double I_param);
+	void create_Quad_element(int element_id, int n1, int n2, int n3, int n4, int mat_id);
 	void create_material(int mat_id_param, double E_param, double Nu_param);
 
 	Matrix assemble_global_stiffness_matrix();
