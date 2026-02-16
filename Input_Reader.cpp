@@ -65,7 +65,7 @@ void Input_Reader::read_Quad_data(model* p_model, std::string& line)
 	std::string value;
 	std::stringstream s(line);
 
-	double element_id, n1, n2, n3, n4, mat_id;
+	int element_id, n1, n2, n3, n4, mat_id;
 	std::getline(s, value, ',');
 	element_id = std::stoi(value);
 	std::getline(s, value, ',');
@@ -73,14 +73,14 @@ void Input_Reader::read_Quad_data(model* p_model, std::string& line)
 	std::getline(s, value, ',');
 	n2 = std::stoi(value);
 	std::getline(s, value, ',');
-	n3 = std::stod(value);
+	n3 = std::stoi(value);
 	std::getline(s, value, ',');
-	n4 = std::stod(value);
+	n4 = std::stoi(value);
 	std::getline(s, value, ',');
 	mat_id = std::stoi(value);
 
 	// For debugging
-	std::cout << "Element_ID: " << element_id << " N1:" << n1 << " N2:" << n2 << " A:" << n3 << " I:" << n4 << " Materail_ID:" << mat_id << std::endl;
+	std::cout << "Element_ID: " << element_id << " N1:" << n1 << " N2:" << n2 << " N3:" << n3 << " N4:" << n4 << " Materail_ID:" << mat_id << std::endl;
 
 	// Creating Instance
 	p_model->create_Quad_element(element_id, n1, n2, n3, n4, mat_id);
@@ -172,6 +172,11 @@ void Input_Reader::read_file(model* p_model,std::string filename)
 		{
 			this->current_data = data_type::Frame;
 			std::cout << "Frame Element -------------------------------------" << std::endl;
+		}
+		else if (line == "*Quad")
+		{
+			this->current_data = data_type::Quad;
+			std::cout << "Quad Element -------------------------------------" << std::endl;
 		}
 		else if (line == "*BC")
 		{

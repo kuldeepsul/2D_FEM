@@ -140,7 +140,7 @@ void model::create_frame_element(int element_id, int node_a_id, int node_b_id,in
 		std::cout << "Error : Material Id not found : " << element_id << std::endl;
 	}
 	//////////////////////////////////////////////////////////////////
-	new_element->get_local_stiffness_matrix();
+	//new_element->get_local_stiffness_matrix();
 	new_element->generate_dof_map();
 	this->elementlist.push_back(new_element);
 
@@ -204,7 +204,7 @@ void model::create_Quad_element(int element_id, int n1, int n2, int n3, int n4, 
 		}
 		if (!n4_found)
 		{
-			if (n->nodeid == n3)
+			if (n->nodeid == n4)
 			{
 				n4_found = true;
 				n->nodal_doflist[0]->is_active = true;
@@ -244,7 +244,6 @@ void model::create_Quad_element(int element_id, int n1, int n2, int n3, int n4, 
 	if (new_element->is_valid_element())
 	{
 		new_element->generate_dof_map();
-		new_element->get_local_stiffness_matrix();
 		this->elementlist.push_back(new_element);
 		return;
 	}
@@ -254,7 +253,6 @@ void model::create_Quad_element(int element_id, int n1, int n2, int n3, int n4, 
 		if (new_element->is_valid_element())
 		{
 			new_element->generate_dof_map();
-			new_element->get_local_stiffness_matrix();
 			this->elementlist.push_back(new_element);
 			return;
 		}
@@ -275,16 +273,17 @@ bool Quad::is_valid_element()
 	bool has_pos{ false };
 	bool invalid_element{false};
 
+	double f = 1.0 / std::sqrt(3);
 	std::vector <std::vector <double>> samples;
 	std::vector <double> det_j_samples;
-	samples = { {-0.57735,-0.57735},{0.57735,-0.57735},{0.57735,0.57735},{-0.57735,0.57735} };
+	samples = { {-f,-f},{f,-f},{f,f},{-f,f} };
 	
 	for (int i{ 0 }; i < size(samples); i++)
 	{
 		det_j_samples.push_back(this->get_det_j(samples[i][0], samples[i][1]));
 	}
 
-	const double tol = 1e-12;
+	const double tol = 1e-15;
 	for (double d : det_j_samples)
 	{
 		if (d > tol )
@@ -327,6 +326,7 @@ bool Quad::is_valid_element()
 
 void Quad::update_orientation()
 {
+	std::cout << "Updated Orientation for Element : " << this->elementid << std::endl;
 	node* temp = this->elemental_nodelist[1];
 	this->elemental_nodelist[1] = this->elemental_nodelist[3];
 	this->elemental_nodelist[3] = temp;
@@ -365,13 +365,17 @@ Matrix Quad::get_shape_func_der(double xi, double eta)
 	sf_der.data = { -(1 - eta) / 4.0	,(1 - eta) / 4.0	,(1 + eta) / 4.0	,-(1 + eta) / 4.0,
 					-(1 - xi) / 4.0 	,-(1 + xi) / 4.0	,(1 + xi) / 4.0		,(1 - xi) / 4.0 };
 
+	sf_der.print_matrix();
+	std::cout << "-----------------------------------------------------" << std::endl;
+
 	return sf_der;
 }
 
 Matrix Quad::get_jacobian_matrix(double xi, double eta)
 {
 	Matrix sf_der = this->get_shape_func_der(xi, eta);
-
+	this->corners.print_matrix();
+	std::cout << "------------------------------------------------------" << std::endl;
 	return sf_der * this->corners;
 }
 
@@ -399,12 +403,17 @@ Matrix Quad::get_B_matrix(Matrix& sf_der, Matrix& jacobian)
 			 ,     0	     ,N1_der_g(1,0) ,		0		,N2_der_g(1,0)	,		0	   ,N3_der_g(0,0) ,		0		 ,N4_der_g(0,0)
 			 ,N1_der_g(1,0)  ,N1_der_g(0,0) ,N2_der_g(1,0)  ,N2_der_g(0,0)  ,N3_der_g(1,0) ,N3_der_g(0,0) ,N4_der_g(1,0) ,N4_der_g(0,0)};
 
+	B.print_matrix();
+	std::cout << "-----------------------------------------------------" << std::endl;
+
 	return B;
 }
 
 double Quad::get_det_j(double xi, double eta)
 {
 	Matrix J = this->get_jacobian_matrix(xi,eta);
+	J.print_matrix();
+	std::cout << "-----------------------------------------------------" << std::endl;
 
 	double det_j = (J(0, 0) * J(1, 1)) - (J(0, 1) * J(1, 0));
 	return det_j;
@@ -412,9 +421,13 @@ double Quad::get_det_j(double xi, double eta)
 
 Matrix Quad::get_local_stiffness_matrix()
 {
+	std::cout << "Starting Local Stiffness matrix Computation" << std::endl;
+	std::cout << "-------------------------------------------" << std::endl;
 	Matrix Ke{ 8,8 };
+
+	double f = 1.0 / std::sqrt(3);
 	std::vector <std::vector <double>> samples;
-	samples = { {-0.57735,-0.57735},{0.57735,-0.57735},{0.57735,0.57735},{-0.57735,0.57735} };
+	samples = { {-f,-f},{f,-f},{f,f},{-f,f} };
 
 	for (int i{ 0 }; i < size(samples); i++)
 	{
@@ -436,9 +449,9 @@ Matrix Quad::get_local_stiffness_matrix()
 	return Ke;
 }
 
-
-
-
+//////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////			Model Functions						//////////////////////////////
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 void model::create_material(int mat_id_param, double E_param, double Nu_param)
 {
@@ -446,21 +459,40 @@ void model::create_material(int mat_id_param, double E_param, double Nu_param)
 	this->material_list.push_back(mat);
 }
 
-Matrix model::assemble_global_stiffness_matrix()
+void model::generate_known_doflist()
 {
-	// calculate no of active dofs
-	int n{ 0 };
+	std::vector <int> list;
+
 	for (dof* di : this->doflist)
 	{
-		if (di->is_active)
+		if (di->value_known)
 		{
-			n++;
-		}
-		else
-		{
-			continue;
+			list.push_back(di->internal_dof_id);
 		}
 	}
+	this->known_dofs = list;
+}
+void model::generate_inactive_doflist()
+{
+	std::vector <int> list;
+
+	for (dof* di : this->doflist)
+	{
+		if (!di->is_active)
+		{
+			list.push_back(di->internal_dof_id);
+		}
+	}
+	this->inactive_dofs = list;
+}
+
+Matrix model::assemble_global_stiffness_matrix()
+{
+	std::cout << "Starting Global stiffness assembly------------------------" << std::endl;
+	// calculate no of active dofs
+	int n{ int (this->doflist.size())};
+	this->generate_known_doflist();
+	this->generate_inactive_doflist();
 
 	Matrix gk(n,n);
 	double val = 0;
@@ -468,6 +500,7 @@ Matrix model::assemble_global_stiffness_matrix()
 	for (int i{ 0 }; i < size(this->elementlist); i++)
 	{
 		Matrix temp = elementlist[i]->get_local_stiffness_matrix();
+
 		for (int j{ 0 }; j < size(elementlist[i]->dofmap); j++)
 		{
 			for (int k{ 0 }; k < size(elementlist[i]->dofmap); k++)
@@ -476,6 +509,9 @@ Matrix model::assemble_global_stiffness_matrix()
 			}
 		}
 	}
+
+
+	std::cout << "Global Assembly complete!-----------------------------------" << std::endl;
 	return gk;
 }
 
@@ -502,7 +538,15 @@ void model::prescribe_force(int node_id_param, int dof_id_param, double val)
 			{
 				if (dof_id_param == this->nodelist[i]->nodal_doflist[k]->nodal_dof_id)
 				{
-					this->nodelist[i]->nodal_doflist[k]->force = val;
+					if (this->nodelist[i]->nodal_doflist[k]->is_active)
+					{
+						this->nodelist[i]->nodal_doflist[k]->force = val;
+					}
+					else
+					{
+						std::cout << "Force Prescibed on inactive dof of inactive node id : " << this->nodelist[i]->nodeid << std::endl;
+						throw std::runtime_error("FATAL ERROR : Force Prescibed on inactive dof.");
+					}
 				}
 			}
 		}
@@ -519,8 +563,16 @@ void model::prescribe_dof(int node_id_param, int dof_id_param, double val)
 			{
 				if (dof_id_param == this->nodelist[i]->nodal_doflist[k]->nodal_dof_id)
 				{
-					this->nodelist[i]->nodal_doflist[k]->value = val;
-					this->nodelist[i]->nodal_doflist[k]->value_known = true;
+					if (this->nodelist[i]->nodal_doflist[k]->is_active)
+					{
+						this->nodelist[i]->nodal_doflist[k]->value = val;
+						this->nodelist[i]->nodal_doflist[k]->value_known = true;
+					}
+					else
+					{
+						std::cout << "Boundary condition Prescibed on inactive dof of inactive node id : " << this->nodelist[i]->nodeid << std::endl;
+						throw std::runtime_error("FATAL ERROR : Boundary condition Prescibed on inactive dof.");
+					}
 				}
 			}
 		}
@@ -529,69 +581,113 @@ void model::prescribe_dof(int node_id_param, int dof_id_param, double val)
 
 Matrix model::get_force_vector()
 {
+	std::cout << "Starting Froce vector assembly----------------------------" << std::endl;
 	
 	Matrix f (0,0);
 
 	for (int i{ 0 }; i < size(this->doflist); i++)
 	{
-		if (!this->doflist[i]->value_known)
+		f.data.push_back(this->doflist[i]->force);
+	}
+
+	// Eliminating Known and Inactive dofs
+
+	std::vector <int> temp = this->inactive_dofs;
+	std::vector <int> temp_01 = this->known_dofs;
+
+	for (int i{ int(size(this->doflist) -1 ) }; i >= 0; i--)
+	{
+		if (!temp.empty())
 		{
-			f.data.push_back(this->doflist[i]->force);
+			if (i == temp.back())
+			{
+				f.data.erase(f.data.begin() + temp.back());
+				temp.pop_back();
+			}
+		}
+		if (!temp_01.empty())
+		{
+			if (i == temp_01.back())
+			{
+				f.data.erase(f.data.begin() + temp_01.back());
+				temp_01.pop_back();
+			}
 		}
 	}
+
 	f.rows = size(f.data);
 	f.cols = 1;
+	std::cout << "Froce vector assembly complete ----------------------------" << std::endl;
 	return f;
 }
 
 Matrix model::get_reduced_system(Matrix global_k, std::vector <int> &known_dofs)
 {
+	std::cout << "Starting BC Elimination ---------------------------------" << std::endl;
 	int val = global_k.cols;
 	
-	
-	for (int i{ 0 }; i < size(this->doflist); i++)
+	std::vector <int> known_list = this->known_dofs;
+	std::vector <int> inactive_list = this->inactive_dofs;
+	for (int i{ int(size(this->doflist)) - 1 }; i >= 0; i--)
 	{
-		if (this->doflist[i]->value_known)
+		if (!known_list.empty())
 		{
-			known_dofs.push_back(i);
+
+			if (this->doflist[i]->internal_dof_id == known_list.back())
+			{
+				global_k.remove_row(known_list.back());
+				known_list.pop_back();
+			}
+		}
+		
+		if (!inactive_list.empty())
+		{
+			if (this->doflist[i]->internal_dof_id == inactive_list.back())
+			{
+				global_k.remove_row(inactive_list.back());
+				inactive_list.pop_back();
+			}
 		}
 	}
 
-	std::vector <int> temp = known_dofs;
-	int iters = size(temp);
-	for (int j{ 0 }; j < iters; j++)
-	{
-		global_k.remove_row(temp.back());
-		temp.pop_back();
-	}
-
+	std::cout << "BC Elimination complete ---------------------------------" << std::endl;
 	return global_k;
 }
 
 Matrix model::generate_full_solution(Matrix& c, std::vector <int> known_dofs)
 {
-	
+	std::cout << "Full solution matrix generation-------------------------------" << std::endl;
 	int iter = size(this->doflist);
 	Matrix x(iter , 1);
 
-	std::vector <int> temp = known_dofs;
+	std::vector <int> temp_known = this->known_dofs;
+	std::vector <int> temp_inactive = this->inactive_dofs;
 	for (int i{ 0 }; i < iter; i++)
 	{
-		if (size(temp) != 0)
+		if (size(temp_known))
 		{
-			if (i == temp.front())
+			if (i == temp_known.front())
 			{
 				x(i, 0) = 0;
-				temp.erase(temp.begin());
+				temp_known.erase(temp_known.begin());
 				continue;
 			}
-			
+		}
+		if (size(temp_inactive))
+		{
+			if (i == temp_inactive.front())
+			{
+				x(i, 0) = 0;
+				temp_inactive.erase(temp_inactive.begin());
+				continue;
+			}
 		}
 
 		x(i, 0) = c.data.front();
 		c.data.erase(c.data.begin());
 		
 	}
+	std::cout << "Full solution matrix generation complete -------------------------------" << std::endl;
 	return x;
 };
 //Matrix generate_rection_forces(Matrix& f);

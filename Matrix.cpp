@@ -31,7 +31,7 @@ Matrix Matrix::operator+(Matrix& other)
 
 Matrix Matrix::Transpose()
 {
-	Matrix T(this->rows ,this->cols);
+	Matrix T(this->cols ,this->rows);
 
 	for (int i{ 0 }; i < this->rows; i++)
 	{
@@ -45,7 +45,11 @@ Matrix Matrix::Transpose()
 
 Matrix Matrix::operator*(Matrix& other)
 {
-	Matrix C(this->rows, this->cols);
+	if (this->cols != other.rows)
+	{
+		throw std::runtime_error("FATAL ERROR : Invlid matrix multiplication");
+	}
+	Matrix C(this->rows, other.cols);
 	double sum{ 0 };
 	for (int i{ 0 }; i < this->rows; i++)
 	{
@@ -56,7 +60,14 @@ Matrix Matrix::operator*(Matrix& other)
 				sum = sum + ((*this)(i, k) * other(k, j));
 			}
 			
-			C(i, j) = sum;
+			if (std::abs(sum) > 1e-15)
+			{
+				C(i, j) = sum;
+			}
+			else
+			{
+				C(i, j) = 0;
+			}
 			sum = 0;
 		}
 		
@@ -84,7 +95,7 @@ void Matrix::print_matrix() const
 	{
 		for (int j{ 0 }; j < this->cols; j++)
 		{
-			std::cout << std::setprecision(4) << std::setw(12) << this->data[i*cols + j];
+			std::cout  << std::setw(12) << this->data[i*cols + j];
 		}
 		std::cout << std::endl;
 	}

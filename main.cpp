@@ -18,12 +18,13 @@ int main()
 	Input_Reader inp;
 	inp.read_file(p_model, "Job.inp");
 
-	///////////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////
+	//Matrix a = p_model->elementlist[0]->get_local_stiffness_matrix();
+	//a.print_matrix();
 	
-
 	////////////////////////////////////////////////////////////////////////////////
 	// Assembling Global Stiffness Matrix and Force Vector
-
+	
 	Matrix Global_K = p_model->assemble_global_stiffness_matrix();
 	Matrix F = p_model->get_force_vector();
 
@@ -31,10 +32,10 @@ int main()
 	Global_K.print_matrix();
 	std::cout << "Force Vector -------------------------------------------------------" << std::endl;
 	F.print_matrix();
-
+	
 	///////////////////////////////////////////////////////////////////////////////////
 
-
+	
 	//////////////////////////////////////////////////////////////////////////////////
 	// Solving Model
 
@@ -50,4 +51,5 @@ int main()
 	p_model->export_results(c,"Job.out");
 	std::cout << "Results Exported sucessfully ---------------------------------------" << std::endl;
 	////////////////////////////////////////////////////////////////////////////////
+	
 }

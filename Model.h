@@ -104,6 +104,9 @@ public:
 	std::vector <element* > elementlist;
 	std::vector <dof* > doflist;
 	std::vector <Material*> material_list;
+
+	std::vector <int> inactive_dofs;
+	std::vector <int> known_dofs;
 	
 
 	model(int modelid_param) : modelid(modelid_param) {};
@@ -114,6 +117,8 @@ public:
 	void create_Quad_element(int element_id, int n1, int n2, int n3, int n4, int mat_id);
 	void create_material(int mat_id_param, double E_param, double Nu_param);
 
+	void generate_known_doflist();
+	void generate_inactive_doflist();
 	Matrix assemble_global_stiffness_matrix();
 	void prescribe_force(int node_id_param , int dof_id_param , double val);
 	void prescribe_dof(int node_id_param, int dof_id_param, double val);
