@@ -76,8 +76,10 @@ void Input_Reader::read_Quad_data(model* p_model, std::string& line)
 	n3 = std::stoi(value);
 	std::getline(s, value, ',');
 	n4 = std::stoi(value);
-	std::getline(s, value, ',');
-	mat_id = std::stoi(value);
+	//std::getline(s, value, ',');
+	//mat_id = std::stoi(value);
+	mat_id = 1;
+
 
 	// For debugging
 	std::cout << "Element_ID: " << element_id << " N1:" << n1 << " N2:" << n2 << " N3:" << n3 << " N4:" << n4 << " Materail_ID:" << mat_id << std::endl;

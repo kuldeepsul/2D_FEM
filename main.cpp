@@ -16,7 +16,7 @@ int main()
 
 	
 	Input_Reader inp;
-	inp.read_file(p_model, "Job.inp");
+	inp.read_file(p_model, "Plate_02.inp");
 
 	/////////////////////////////////////////////////////////////////////////////////////
 	//Matrix a = p_model->elementlist[0]->get_local_stiffness_matrix();
@@ -48,7 +48,7 @@ int main()
 	////////////////////////////////////////////////////////////////////////////////
 	// Exporting results 
 
-	p_model->export_results(c,"Job.out");
+	p_model->export_results(c,"Plate.out");
 	std::cout << "Results Exported sucessfully ---------------------------------------" << std::endl;
 	////////////////////////////////////////////////////////////////////////////////
 	

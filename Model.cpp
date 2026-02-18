@@ -150,7 +150,7 @@ void model::create_frame_element(int element_id, int node_a_id, int node_b_id,in
 void model::create_Quad_element(int element_id, int n1, int n2, int n3, int n4, int mat_id)
 {
 	Quad* new_element = new Quad(element_id);
-
+	new_element->elemental_nodelist = {nullptr,nullptr, nullptr, nullptr };
 	// Utils
 	bool n1_found{ false };
 	bool n2_found{ false };
@@ -167,7 +167,7 @@ void model::create_Quad_element(int element_id, int n1, int n2, int n3, int n4, 
 				n1_found = true;
 				n->nodal_doflist[0]->is_active = true;
 				n->nodal_doflist[1]->is_active = true;
-				new_element->elemental_nodelist.push_back(n);
+				new_element->elemental_nodelist[0] = n;
 			}
 			else if (n == this->nodelist.back() && !n1_found)
 			{
@@ -181,7 +181,7 @@ void model::create_Quad_element(int element_id, int n1, int n2, int n3, int n4, 
 				n2_found = true;
 				n->nodal_doflist[0]->is_active = true;
 				n->nodal_doflist[1]->is_active = true;
-				new_element->elemental_nodelist.push_back(n);
+				new_element->elemental_nodelist[1] = n;
 			}
 			else if (n == this->nodelist.back() && !n2_found)
 			{
@@ -195,7 +195,7 @@ void model::create_Quad_element(int element_id, int n1, int n2, int n3, int n4, 
 				n3_found = true;
 				n->nodal_doflist[0]->is_active = true;
 				n->nodal_doflist[1]->is_active = true;
-				new_element->elemental_nodelist.push_back(n);
+				new_element->elemental_nodelist[2] = n;
 			}
 			else if (n == this->nodelist.back() && !n3_found)
 			{
@@ -209,7 +209,7 @@ void model::create_Quad_element(int element_id, int n1, int n2, int n3, int n4, 
 				n4_found = true;
 				n->nodal_doflist[0]->is_active = true;
 				n->nodal_doflist[1]->is_active = true;
-				new_element->elemental_nodelist.push_back(n);
+				new_element->elemental_nodelist[3] = n;
 			}
 			else if (n == this->nodelist.back() && !n4_found)
 			{
